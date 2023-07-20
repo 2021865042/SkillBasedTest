@@ -1,0 +1,60 @@
+
+//Server
+
+import socket
+
+def bar_to_atm(pressure):
+    return pressure * 0.986923
+
+def main():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    host = "192.168.136.128"
+    port = 8443
+
+    server_socket.bind((host, port))
+    server_socket.listen(5)
+
+    print("Server is listening for incoming connections...")
+
+    while True:
+        conn, addr = server_socket.accept()
+        print("Connected by:", addr)
+
+        data = conn.recv(1024).decode()
+        pressure = float(data)
+
+        print("Received pressure in bar:", pressure)
+
+        atm_pressure = bar_to_atm(pressure)
+        response = f"Atmosphere-Standard Pressure: {atm_pressure:.4f} atm"
+
+        conn.sendall(response.encode())
+        conn.close()
+
+if __name__ == "__main__":
+    main()
+
+//CLIENT
+import socket
+
+def main():
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    host = "192.168.136.128"
+    port = 8443
+
+    client_socket.connect((host, port))
+
+    pressure = float(input("Enter pressure in bar: "))
+
+    client_socket.sendall(str(pressure).encode())
+
+    response = client_socket.recv(1024).decode()
+    print(response)
+
+    client_socket.close()
+
+if __name__ == "__main__":
+    main()
