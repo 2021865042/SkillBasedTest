@@ -1,0 +1,117 @@
+//SERVER
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int generate_random_number() {
+    return rand() % (999 - 100 + 1) + 100; // Generate a random number between 100 and 999
+}
+
+int main() {
+    int server_fd, new_socket, valread;
+    struct sockaddr_in address;
+    int opt = 1;
+    int addrlen = sizeof(address);
+    char buffer[1024] = {0};
+
+    // Create socket
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
+        perror("socket failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Set socket options to reuse address and port
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_port = htons(8080);
+
+    // Bind the socket to the specified address and port
+    if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+    // Listen for incoming connections
+    if (listen(server_fd, 3) < 0) {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Server waiting for incoming connections...\n");
+
+    while (1) {
+        // Accept a new connection
+        if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+            perror("accept");
+            exit(EXIT_FAILURE);
+        }
+
+        int random_number = generate_random_number();
+        printf("Generated random number: %d\n", random_number);
+
+        // Convert the random number to a string
+        char num_str[4];
+        sprintf(num_str, "%d", random_number);
+
+        // Send the random number to the client
+        send(new_socket, num_str, strlen(num_str), 0);
+
+        printf("Random number sent to the client.\n");
+
+        close(new_socket); // Close the client socket
+    }
+
+    return 0;
+}
+
+//CLIENT
+
+CLIENT
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+
+int main() {
+    int sock = 0, valread;
+    struct sockaddr_in serv_addr;
+    char buffer[1024] = {0};
+
+    // Create socket
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        perror("socket failed");
+        return -1;
+    }
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(8123);
+
+    // Convert IPv4 and IPv6 addresses from text to binary form
+    if(inet_pton(AF_INET, "192.168.136.128", &serv_addr.sin_addr) <= 0) {
+        perror("Invalid address/ Address not supported");
+        return -1;
+    }
+
+    // Connect to the server
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        perror("connection failed");
+        return -1;
+    }
+
+    // Receive the random number from the server
+    valread = read(sock, buffer, 1024);
+
+    printf("Received random number from server: %s\n", buffer);
+
+    return 0;
+}
+
