@@ -1,0 +1,60 @@
+//SERVER
+
+import socket
+import threading
+import random
+
+QUOTES = [
+    "A little progress each day adds up to big results - Satya Nani ",
+    "Learning is never done without errors and defeat – Vladimir Lenin ",
+    "Just one small positive thought in the morning can change your whole day – Dalai Lama",
+    "The best way to predict your future is to create it – Abraham Lincoln ",
+    " Teachers can open the door, but you must enter it yourself. - Chinese proverb",
+    "Life is what happens when you're busy making other plans. - John Lennon"
+]
+
+def handle_client(client_socket):
+    quote = random.choice(QUOTES)
+    client_socket.send(quote.encode())
+    client_socket.close()
+
+def main():
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    host = "127.0.0.1"
+    port = 8888
+
+    server_socket.bind((host, port))
+    server_socket.listen(5)
+
+    print("QOTD Server is listening for incoming connections on {}:{}".format(host, port))
+
+    while True:
+        client_socket, client_addr = server_socket.accept()
+        print("Connected to:", client_addr)
+
+        client_thread = threading.Thread(target=handle_client, args=(client_socket,))
+        client_thread.start()
+
+if __name__ == "__main__":
+    main()
+
+//CLIENT
+import socket
+
+def main():
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+    host = "192.168.136.128"
+    port = 8888
+
+    client_socket.connect((host, port))
+
+    quote = client_socket.recv(1024).decode()
+    print("Received quote of the day:", quote)
+
+    client_socket.close()
+
+if __name__ == "__main__":
+    main()
